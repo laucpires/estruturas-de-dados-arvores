@@ -1,0 +1,25 @@
+template <class T>
+void AVL<T>::rotateLeft(TreeNode*& node) {
+    TreeNode* newRoot = node->right;
+    node->right = newRoot->left;
+    newRoot->left = node;
+    node = newRoot;
+    
+    // Atualiza alturas
+    node->left->height = 1 + std::max(height(node->left->left), 
+                                    height(node->left->right));
+    node->height = 1 + std::max(height(node->left), height(node->right));
+}
+
+template <class T>
+void AVL<T>::rotateRight(TreeNode*& node) {
+    TreeNode* newRoot = node->left;
+    node->left = newRoot->right;
+    newRoot->right = node;
+    node = newRoot;
+    
+    // Atualiza alturas
+    node->right->height = 1 + std::max(height(node->right->left), 
+                                     height(node->right->right));
+    node->height = 1 + std::max(height(node->left), height(node->right));
+}

@@ -218,10 +218,14 @@ bool BST<T>::insert(const T& value) {
 }
 
 template <class T>
-bool BST<T>::remove(const T& value) {}
+bool BST<T>::remove(const T& value) {
+    return remove(root, value);
+}
 
 template <class T>
-bool BST<T>::contain(const T& value) const {}
+bool BST<T>::contain(const T& value) const {
+    return contain(root, value);
+}
 
 template <class T>
 bool BST<T>::insert(TreeNode*& node, const T& value) {
@@ -229,17 +233,80 @@ bool BST<T>::insert(TreeNode*& node, const T& value) {
     node = new TreeNode(value);
     return true;
   } else if (value < node->data) {
-    return insert(node->left, data);
+    return insert(node->left, value);
   } else if (node->data < value) {
     return insert(node->right, value);
   }
 }
 
+/*
+Se nó atual é nullptr: valor não existe.
+Compara com o nó atual e decide direção (esquerda/direita).
+Igualdade significa valor encontrado.
+*/
 template <class T>
-bool BST<T>::contain(const TreeNode* const node, const T& value) const {}
+bool BST<T>::contain(const TreeNode* const node, const T& value) const {
+    if (node == nullptr) {
+        return false;
+    } else if (value < node->data) {
+        return contain(node->left, value);
+    } else if (node->data < value) {
+        return contain(node->right, value);
+    } else {
+        return true; // Valor encontrado
+    }
+}
 
+/*
+Nó folha: Remove diretamente e ajusta ponteiro.
+
+Um filho: Substitui o nó pelo filho e corrige ponteiros.
+
+Dois filhos:
+
+Encontra o maior valor da subárvore esquerda (maxLeft).
+
+Copia o valor para o nó atual.
+
+Remove recursivamente o maxLeft original.
+*/
 template <class T>
-bool BST<T>::remove(TreeNode*& node, const T& value) {}
+bool BST<T>::remove(TreeNode*& node, const T& value) {
+    if (node == nullptr) return false; // Valor não encontrado
+
+    if (value < node->data) {
+        return remove(node->left, value);
+    } else if (node->data < value) {
+        return remove(node->right, value);
+    } else { // Valor encontrado
+        // Caso 1: Nó folha
+        if (node->left == nullptr && node->right == nullptr) {
+            delete node;
+            node = nullptr;
+            return true;
+        }
+        // Caso 2: Um filho
+        else if (node->left == nullptr) {
+            TreeNode* temp = node;
+            node = node->right;
+            temp->right = nullptr; // Impede deleção recursiva
+            delete temp;
+            return true;
+        } else if (node->right == nullptr) {
+            TreeNode* temp = node;
+            node = node->left;
+            temp->left = nullptr; // Impede deleção recursiva
+            delete temp;
+            return true;
+        }
+        // Caso 3: Dois filhos
+        else {
+            TreeNode* maxLeft = node->left->max();
+            node->data = maxLeft->data;
+            return remove(node->left, maxLeft->data);
+        }
+    }
+}
 
 template <class T>
 void BST<T>::in_order(const TreeNode* const node,

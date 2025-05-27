@@ -223,65 +223,240 @@ class AVL {
   TreeNode* root;  ///< Ponteiro para a raiz da árvore.
 };
 
-template <class T>
-int AVL<T>::height(TreeNode* node) const {}
+/*
+Atualização de Alturas: Após cada operação de remoção, as alturas dos nós são recalculadas
+
+Balanceamento Automático: Chamada do método balance() após qualquer modificação na estrutura
+
+Rotações Duplas: Necessárias em casos específicos de desbalanceamento complexo
+
+Propagação Recursiva: O balanceamento é feito de forma recursiva desde o ponto de remoção até a raiz
+*/
 
 template <class T>
-void AVL<T>::balance(TreeNode*& node) {}
+int AVL<T>::height(TreeNode* node) const {
+    return (node == nullptr) ? -1 : node->height;
+}
 
 template <class T>
-AVL<T>::TreeNode::TreeNode(const T& value) {}
+void AVL<T>::balance(TreeNode*& node) {
+    if (node == nullptr) return;
+
+    // Atualiza altura antes do balanceamento
+    node->height = 1 + std::max(height(node->left), height(node->right));
+    
+    int bf = height(node->left) - height(node->right);
+
+    // Rotação à direita
+    if (bf > 1) {
+        if (height(node->left->left) >= height(node->left->right)) {
+            rotateRight(node);
+        } else {
+            rotateLeft(node->left);
+            rotateRight(node);
+        }
+    }
+    // Rotação à esquerda
+    else if (bf < -1) {
+        if (height(node->right->right) >= height(node->right->left)) {
+            rotateLeft(node);
+        } else {
+            rotateRight(node->right);
+            rotateLeft(node);
+        }
+    }
+}
 
 template <class T>
-AVL<T>::TreeNode::~TreeNode() {}
+AVL<T>::TreeNode::TreeNode(const T& value)
+    : data{value}, left{nullptr}, right{nullptr}, height{0} {}
 
 template <class T>
-typename AVL<T>::TreeNode* AVL<T>::TreeNode::max() {}
+AVL<T>::TreeNode::~TreeNode() {
+    if (left) delete left;
+    if (right) delete right;
+}
 
 template <class T>
-typename AVL<T>::TreeNode* AVL<T>::TreeNode::min() {}
+typename AVL<T>::TreeNode* AVL<T>::TreeNode::max() {
+    return right ? right->max() : this;
+}
 
 template <class T>
-AVL<T>::AVL() {}
+typename AVL<T>::TreeNode* AVL<T>::TreeNode::min() {
+    return left ? left->min() : this;
+}
 
 template <class T>
-AVL<T>::~AVL() {}
+AVL<T>::AVL() : root{nullptr} {}
 
 template <class T>
-bool AVL<T>::insert(const T& value) {}
+AVL<T>::~AVL() {
+    if (root) delete root;
+}
+
+template <class T>
+bool AVL<T>::insert(const T& value) {
+    return insert(root, value);
+}
+
+template <class T>
+bool AVL<T>::insert(TreeNode*& node, const T& value) {
+    if (!node) {
+        node = new TreeNode(value);
+        return true;
+    }
+    
+    bool inserted;
+    if (value < node->data) {
+        inserted = insert(node->left, value);
+    } else if (node->data < value) {
+        inserted = insert(node->right, value);
+    } else {
+        return false;  // Duplicado
+    }
+
+    if (inserted) {
+        // Atualiza altura e balanceia
+        node->height = 1 + std::max(height(node->left), height(node->right));
+        balance(node);
+    }
+    return inserted;
+}
 
 template <class T>
 bool AVL<T>::remove(const T& value) {}
 
 template <class T>
-bool AVL<T>::contain(const T& value) const {}
+bool AVL<T>::contain(const T& value) const {
+    return contain(root, value);
+}
+
+template <class T>
+bool AVL<T>::contain(const TreeNode* const node, const T& value) const {
+    if (!node) return false;
+    
+    if (value < node->data) return contain(node->left, value);
+    if (node->data < value) return contain(node->right, value);
+    return true;
+}
 
 template <class T>
 bool AVL<T>::insert(TreeNode*& node, const T& value) {}
 
 template <class T>
-bool AVL<T>::contain(const TreeNode* const node, const T& value) const {}
+bool AVL<T>::contain(const T& value) const {
+    return contain(root, value);
+}
+
+// Manutenção: A busca não altera a estrutura da árvore, portanto funciona igual à BST.
+template <class T>
+bool AVL<T>::contain(const TreeNode* const node, const T& value) const {
+    if (node == nullptr) return false;
+    
+    if (value < node->data) return contain(node->left, value);
+    else if (node->data < value) return contain(node->right, value);
+    else return true;
+}
 
 template <class T>
-bool AVL<T>::remove(TreeNode*& node, const T& value) {}
+bool AVL<T>::remove(const T& value) {
+    return remove(root, value);
+}
 
 template <class T>
-void AVL<T>::in_order(const TreeNode* const node,
-                      std::vector<T>& result) const {}
+bool AVL<T>::remove(TreeNode*& node, const T& value) {
+    if (node == nullptr) return false;
+
+    bool removed = false;
+    
+    if (value < node->data) {
+        removed = remove(node->left, value);
+    } else if (node->data < value) {
+        removed = remove(node->right, value);
+    } else {
+        // Caso 1: Nó folha
+        if (node->left == nullptr && node->right == nullptr) {
+            delete node;
+            node = nullptr;
+            removed = true;
+        }
+        // Caso 2: Um filho
+        else if (node->left == nullptr) {
+            TreeNode* temp = node;
+            node = node->right;
+            temp->right = nullptr;
+            delete temp;
+            removed = true;
+        } else if (node->right == nullptr) {
+            TreeNode* temp = node;
+            node = node->left;
+            temp->left = nullptr;
+            delete temp;
+            removed = true;
+        }
+        // Caso 3: Dois filhos
+        else {
+            TreeNode* maxLeft = node->left->max();
+            node->data = maxLeft->data;
+            removed = remove(node->left, maxLeft->data);
+        }
+    }
+
+    if (removed) {
+        // Atualiza altura e balanceia após remoção
+        if (node != nullptr) {
+            node->height = 1 + std::max(height(node->left), height(node->right));
+            balance(node);
+        }
+        return true;
+    }
+    return false;
+}
+
+// Versão pública
+template <class T>
+std::vector<T> AVL<T>::in_order() const {
+    std::vector<T> result;
+    in_order(root, result);
+    return result;
+}
+
+// Versão privada auxiliar
+template <class T>
+void AVL<T>::in_order(const TreeNode* const node, std::vector<T>& result) const {
+    if (!node) return;
+    in_order(node->left, result);
+    result.push_back(node->data);
+    in_order(node->right, result);
+}
 
 template <class T>
-std::vector<T> AVL<T>::in_order() const {}
+std::vector<T> AVL<T>::pre_order() const {
+    std::vector<T> result;
+    pre_order(root, result);
+    return result;
+}
 
 template <class T>
-void AVL<T>::pre_order(const TreeNode* const node,
-                       std::vector<T>& result) const {}
+void AVL<T>::pre_order(const TreeNode* const node, std::vector<T>& result) const {
+    if (!node) return;
+    result.push_back(node->data);
+    pre_order(node->left, result);
+    pre_order(node->right, result);
+}
 
 template <class T>
-std::vector<T> AVL<T>::pre_order() const {}
+std::vector<T> AVL<T>::post_order() const {
+    std::vector<T> result;
+    post_order(root, result);
+    return result;
+}
 
 template <class T>
-void AVL<T>::post_order(const TreeNode* const node,
-                        std::vector<T>& result) const {}
-
-template <class T>
-std::vector<T> AVL<T>::post_order() const {}
+void AVL<T>::post_order(const TreeNode* const node, std::vector<T>& result) const {
+    if (!node) return;
+    post_order(node->left, result);
+    post_order(node->right, result);
+    result.push_back(node->data);
+}
